@@ -190,6 +190,7 @@ export default function Home() {
               </div>
               <div className="hidden md:flex space-x-8">
                 <a href="/market" className="text-gray-700 hover:text-primary-600 transition-colors">市场行情</a>
+                <a href="/ranking" className="text-gray-700 hover:text-primary-600 transition-colors">排行榜</a>
                 <a href="#news" className="text-gray-700 hover:text-primary-600 transition-colors">新闻资讯</a>
                 <a href="#analysis" className="text-gray-700 hover:text-primary-600 transition-colors">技术分析</a>
                 <a href="#about" className="text-gray-700 hover:text-primary-600 transition-colors">关于我们</a>
