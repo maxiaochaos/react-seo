@@ -33,7 +33,12 @@ export default function RankingPage() {
       const response = await fetch('/api/crypto-data')
       if (response.ok) {
         const result = await response.json()
+        console.log('API返回的完整数据:', result)
+        
         if (result.success && result.data.crypto) {
+          console.log('crypto数组长度:', result.data.crypto.length)
+          console.log('crypto数组内容:', result.data.crypto)
+          
           const rankingData = result.data.crypto.map((crypto: any, index: number) => ({
             rank: index + 1,
             symbol: crypto.symbol,
@@ -45,7 +50,11 @@ export default function RankingPage() {
             circulatingSupply: crypto.volume * 0.1, // 模拟数据
             isFavorite: false
           }))
+          
+          console.log('处理后的排行榜数据:', rankingData)
           setCryptoData(rankingData)
+        } else {
+          console.log('API返回数据格式不正确:', result)
         }
       }
     } catch (error) {
