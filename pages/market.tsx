@@ -31,14 +31,19 @@ export default function MarketPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [crypto, global] = await Promise.all([
-        getMainCryptoData(),
-        coingeckoApi.getGlobalData()
-      ])
+      const response = await fetch('/api/crypto-data')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const result = await response.json()
       
-      setCryptoData(crypto)
-      setGlobalData(global?.data)
-      setLastUpdate(new Date())
+      if (result.success) {
+        setCryptoData(result.data.crypto || [])
+        setGlobalData(result.data.global)
+        setLastUpdate(new Date())
+      } else {
+        console.error('API返回失败:', result.message)
+      }
     } catch (error) {
       console.error('获取数据失败:', error)
     } finally {
@@ -47,11 +52,16 @@ export default function MarketPage() {
   }
 
   useEffect(() => {
-    fetchData()
+    // 延迟获取数据，确保页面完全加载
+    const timer = setTimeout(fetchData, 1000)
     
     // 每5分钟自动更新数据
     const interval = setInterval(fetchData, 5 * 60 * 1000)
-    return () => clearInterval(interval)
+    
+    return () => {
+      clearTimeout(timer)
+      clearInterval(interval)
+    }
   }, [])
 
   useEffect(() => {

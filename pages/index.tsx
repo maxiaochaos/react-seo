@@ -86,6 +86,9 @@ export default function Home() {
     const fetchCryptoData = async () => {
       try {
         const response = await fetch('/api/crypto-data')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
         const result = await response.json()
         
         if (result.success && result.data.crypto) {
@@ -101,6 +104,9 @@ export default function Home() {
             icon: crypto.symbol.slice(0, 3)
           }))
           setCryptoData(formattedData)
+        } else {
+          // 如果API返回失败，使用备用数据
+          setCryptoData(fallbackCryptoData)
         }
       } catch (error) {
         console.error('获取实时数据失败:', error)
@@ -111,11 +117,16 @@ export default function Home() {
       }
     }
 
-    fetchCryptoData()
+    // 延迟获取数据，确保页面完全加载
+    const timer = setTimeout(fetchCryptoData, 1000)
     
     // 每5分钟更新一次数据
     const interval = setInterval(fetchCryptoData, 5 * 60 * 1000)
-    return () => clearInterval(interval)
+    
+    return () => {
+      clearTimeout(timer)
+      clearInterval(interval)
+    }
   }, [])
 
   return (
