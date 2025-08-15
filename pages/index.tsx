@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { TrendingUp, Bitcoin, Shield, Globe, BarChart3, Users } from 'lucide-react'
 
-// 模拟加密货币数据
-const cryptoData = [
+// 模拟加密货币数据（作为备用数据）
+const fallbackCryptoData = [
   {
     id: 'bitcoin',
     name: '比特币',
@@ -67,13 +67,55 @@ const newsData = [
 ]
 
 export default function Home() {
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
+  const [cryptoData, setCryptoData] = useState(fallbackCryptoData)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // 只在客户端设置时间，避免水合错误
+    setCurrentTime(new Date())
+    
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    // 获取实时数据
+    const fetchCryptoData = async () => {
+      try {
+        const response = await fetch('/api/crypto-data')
+        const result = await response.json()
+        
+        if (result.success && result.data.crypto) {
+          // 转换数据格式以匹配现有结构
+          const formattedData = result.data.crypto.slice(0, 3).map((crypto: any) => ({
+            id: crypto.symbol.toLowerCase().replace('usdt', ''),
+            name: crypto.name,
+            symbol: crypto.symbol.replace('USDT', ''),
+            price: crypto.price,
+            change: crypto.change,
+            marketCap: `${(crypto.marketCap / 1e9).toFixed(1)}B`,
+            volume: `${(crypto.volume / 1e9).toFixed(1)}B`,
+            icon: crypto.symbol.slice(0, 3)
+          }))
+          setCryptoData(formattedData)
+        }
+      } catch (error) {
+        console.error('获取实时数据失败:', error)
+        // 使用备用数据
+        setCryptoData(fallbackCryptoData)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCryptoData()
+    
+    // 每5分钟更新一次数据
+    const interval = setInterval(fetchCryptoData, 5 * 60 * 1000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
@@ -81,15 +123,15 @@ export default function Home() {
       <NextSeo
         title="区块链资讯 - 比特币虚拟币专业平台"
         description="专业的区块链资讯平台，提供比特币、以太坊、虚拟币最新行情分析，区块链技术发展趋势，加密货币投资指南。实时价格、市场分析、技术动态，尽在区块链资讯。"
-        canonical="https://your-domain.com"
+        canonical="https://chaosbtc.com"
         openGraph={{
           title: '区块链资讯 - 比特币虚拟币专业平台',
           description: '专业的区块链资讯平台，提供比特币、以太坊、虚拟币最新行情分析',
-          url: 'https://your-domain.com',
+          url: 'https://chaosbtc.com',
           siteName: '区块链资讯',
           images: [
             {
-              url: 'https://your-domain.com/og-image.jpg',
+              url: 'https://chaosbtc.com/og-image.jpg',
               width: 1200,
               height: 630,
               alt: '区块链资讯平台',
@@ -115,7 +157,7 @@ export default function Home() {
               "@type": "WebPage",
               "name": "区块链资讯 - 比特币虚拟币专业平台",
               "description": "专业的区块链资讯平台，提供比特币、以太坊、虚拟币最新行情分析",
-              "url": "https://your-domain.com",
+              "url": "https://chaosbtc.com",
               "mainEntity": {
                 "@type": "Organization",
                 "name": "区块链资讯",
@@ -136,14 +178,14 @@ export default function Home() {
                 <span className="ml-2 text-xl font-bold gradient-text">区块链资讯</span>
               </div>
               <div className="hidden md:flex space-x-8">
-                <a href="#market" className="text-gray-700 hover:text-primary-600 transition-colors">市场行情</a>
+                <a href="/market" className="text-gray-700 hover:text-primary-600 transition-colors">市场行情</a>
                 <a href="#news" className="text-gray-700 hover:text-primary-600 transition-colors">新闻资讯</a>
                 <a href="#analysis" className="text-gray-700 hover:text-primary-600 transition-colors">技术分析</a>
                 <a href="#about" className="text-gray-700 hover:text-primary-600 transition-colors">关于我们</a>
               </div>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-500">
-                  {currentTime.toLocaleString('zh-CN')}
+                  {currentTime ? currentTime.toLocaleString('zh-CN') : ''}
                 </span>
                 <button className="btn-primary">登录</button>
               </div>
@@ -177,7 +219,7 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <button className="btn-primary text-lg px-8 py-3">开始探索</button>
+              <a href="/market" className="btn-primary text-lg px-8 py-3">查看实时行情</a>
               <button className="btn-secondary text-lg px-8 py-3">了解更多</button>
             </motion.div>
           </div>
@@ -192,43 +234,65 @@ export default function Home() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {cryptoData.map((crypto, index) => (
-                <motion.div
-                  key={crypto.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="crypto-card hover:scale-105 transition-transform duration-200"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <span className="text-2xl mr-3">{crypto.icon}</span>
-                      <div>
-                        <h3 className="font-bold text-lg">{crypto.name}</h3>
-                        <p className="text-sm opacity-80">{crypto.symbol}</p>
+              {loading ? (
+                // 加载状态
+                Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="crypto-card animate-pulse">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full mr-3"></div>
+                        <div>
+                          <div className="h-4 bg-white bg-opacity-20 rounded w-16 mb-2"></div>
+                          <div className="h-3 bg-white bg-opacity-20 rounded w-12"></div>
+                        </div>
                       </div>
                     </div>
-                    <TrendingUp className="h-6 w-6" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm opacity-80">价格</span>
-                      <span className="font-bold text-xl">${crypto.price.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm opacity-80">24h变化</span>
-                      <span className={`font-bold ${crypto.change >= 0 ? 'price-up' : 'price-down'}`}>
-                        {crypto.change >= 0 ? '+' : ''}{crypto.change}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm opacity-80">市值</span>
-                      <span className="font-bold">{crypto.marketCap}</span>
+                    <div className="space-y-2">
+                      <div className="h-6 bg-white bg-opacity-20 rounded"></div>
+                      <div className="h-4 bg-white bg-opacity-20 rounded w-20"></div>
+                      <div className="h-4 bg-white bg-opacity-20 rounded w-16"></div>
                     </div>
                   </div>
-                </motion.div>
-              ))}
+                ))
+              ) : (
+                cryptoData.map((crypto, index) => (
+                  <motion.div
+                    key={crypto.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="crypto-card hover:scale-105 transition-transform duration-200"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-3">{crypto.icon}</span>
+                        <div>
+                          <h3 className="font-bold text-lg">{crypto.name}</h3>
+                          <p className="text-sm opacity-80">{crypto.symbol}</p>
+                        </div>
+                      </div>
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm opacity-80">价格</span>
+                        <span className="font-bold text-xl">${crypto.price.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm opacity-80">24h变化</span>
+                        <span className={`font-bold ${crypto.change >= 0 ? 'price-up' : 'price-down'}`}>
+                          {crypto.change >= 0 ? '+' : ''}{crypto.change}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm opacity-80">市值</span>
+                        <span className="font-bold">{crypto.marketCap}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </div>
           </div>
         </section>
@@ -343,27 +407,27 @@ export default function Home() {
               <div>
                 <h3 className="text-lg font-bold mb-4">快速链接</h3>
                 <ul className="space-y-2 text-gray-400">
-                  <li><a href="#" className="hover:text-white transition-colors">市场行情</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">新闻资讯</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">技术分析</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">投资指南</a></li>
+                  <li><a href="/market" className="hover:text-white transition-colors">市场行情</a></li>
+                  <li><a href="#news" className="hover:text-white transition-colors">新闻资讯</a></li>
+                  <li><a href="#analysis" className="hover:text-white transition-colors">技术分析</a></li>
+                  <li><a href="#about" className="hover:text-white transition-colors">投资指南</a></li>
                 </ul>
               </div>
               
               <div>
                 <h3 className="text-lg font-bold mb-4">热门币种</h3>
                 <ul className="space-y-2 text-gray-400">
-                  <li><a href="#" className="hover:text-white transition-colors">比特币 (BTC)</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">以太坊 (ETH)</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">币安币 (BNB)</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">更多币种</a></li>
+                  <li><a href="/crypto/bitcoin" className="hover:text-white transition-colors">比特币 (BTC)</a></li>
+                  <li><a href="/crypto/ethereum" className="hover:text-white transition-colors">以太坊 (ETH)</a></li>
+                  <li><a href="/crypto/binance-coin" className="hover:text-white transition-colors">币安币 (BNB)</a></li>
+                  <li><a href="/market" className="hover:text-white transition-colors">更多币种</a></li>
                 </ul>
               </div>
               
               <div>
                 <h3 className="text-lg font-bold mb-4">联系我们</h3>
                 <ul className="space-y-2 text-gray-400">
-                  <li>邮箱: info@blockchain-news.com</li>
+                  <li>邮箱: info@chaosbtc.com</li>
                   <li>电话: +86 400-123-4567</li>
                   <li>地址: 北京市朝阳区</li>
                 </ul>
