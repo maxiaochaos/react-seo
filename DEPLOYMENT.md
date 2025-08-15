@@ -27,7 +27,7 @@
    git commit -m "Initial commit: 区块链资讯网站"
    
    # 创建GitHub仓库并推送
-   git remote add origin https://github.com/your-username/react-seo.git
+   git remote add origin https://github.com/maxiaochaos/react-seo.git
    git branch -M main
    git push -u origin main
    ```
